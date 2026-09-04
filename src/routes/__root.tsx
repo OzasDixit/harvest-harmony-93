@@ -78,10 +78,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Verdant Agrideck | Farm-to-market intelligence" },
-      { name: "description", content: "AI-powered crop planning, cultivation guidance, market intelligence, and buyer matching." },
+      {
+        name: "description",
+        content:
+          "AI-powered crop planning, cultivation guidance, market intelligence, and buyer matching.",
+      },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "Verdant Agrideck | Farm-to-market intelligence" },
-      { property: "og:description", content: "Turn soil, weather, and market signals into one confident farm-to-market plan." },
+      {
+        property: "og:description",
+        content: "Turn soil, weather, and market signals into one confident farm-to-market plan.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
@@ -94,7 +101,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
