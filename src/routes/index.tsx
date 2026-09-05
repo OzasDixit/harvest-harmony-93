@@ -27,6 +27,13 @@ import {
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { MarketView } from "../components/views/MarketView";
+import { GrowPlanView } from "../components/views/GrowPlanView";
+import { AdvisoryView } from "../components/views/AdvisoryView";
+import { SellVsStoreView } from "../components/views/SellVsStoreView";
+import { StorageView } from "../components/views/StorageView";
+import { BuyersView } from "../components/views/BuyersView";
+import { ProfitView } from "../components/views/ProfitView";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -65,6 +72,7 @@ const priceBars = ["h-8", "h-11", "h-7", "h-14", "h-10", "h-12", "h-14"];
 
 function Index() {
   const [activeNav, setActiveNav] = useState("Overview");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeStep, setActiveStep] = useState(3);
   const [sellMode, setSellMode] = useState<"sell" | "store">("store");
   const [accepted, setAccepted] = useState(false);
@@ -109,6 +117,7 @@ function Index() {
     <div className="min-h-screen bg-ground font-sans text-ink antialiased">
       <div className="dashboard-aura pointer-events-none fixed inset-0 opacity-70" />
       <div className="relative flex min-h-screen">
+        {/* Desktop Sidebar */}
         <aside className="hidden w-60 shrink-0 border-r border-line bg-panel/70 lg:flex lg:flex-col">
           <div className="flex h-14 items-center gap-2 border-b border-line px-5">
             <div className="grid size-7 place-items-center rounded-[5px] bg-leaf/15 ring-1 ring-leaf/40">
@@ -152,6 +161,52 @@ function Index() {
           </div>
         </aside>
 
+        {/* Mobile Drawer Overlay */}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 flex lg:hidden">
+            <div
+              className="fixed inset-0 bg-ground/80 backdrop-blur-sm"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <div className="relative flex w-64 flex-col border-r border-line bg-panel p-4 shadow-xl">
+              <div className="mb-4 flex items-center justify-between border-b border-line pb-3">
+                <div className="flex items-center gap-2">
+                  <Leaf className="size-4 text-leaf" />
+                  <span className="font-semibold text-sm">Verdant Agrideck</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="grid size-7 place-items-center rounded bg-panel2 text-mute hover:text-ink"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+              <nav className="space-y-1">
+                {navItems.map(({ label, icon: Icon }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => {
+                      setActiveNav(label);
+                      setMobileMenuOpen(false);
+                      notify(`${label} view selected`);
+                    }}
+                    className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                      activeNav === label
+                        ? "bg-leaf/10 text-ink ring-1 ring-leaf/20 font-medium"
+                        : "text-mute hover:bg-panel2 hover:text-ink"
+                    }`}
+                  >
+                    <Icon className={`size-4 ${activeNav === label ? "text-leaf" : "text-faint"}`} />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </div>
+        )}
+
         <main className="min-w-0 flex-1 overflow-auto">
           <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-line bg-ground/80 px-4 backdrop-blur-xl sm:px-6">
             <div className="flex items-center gap-3 text-xs">
@@ -159,7 +214,7 @@ function Index() {
                 type="button"
                 className="grid size-8 place-items-center rounded-md bg-panel ring-1 ring-line lg:hidden"
                 aria-label="Open navigation"
-                onClick={() => notify("Use the section controls below to navigate")}
+                onClick={() => setMobileMenuOpen(true)}
               >
                 <Menu className="size-4 text-mute" />
               </button>
@@ -194,9 +249,19 @@ function Index() {
           </header>
 
           <div className="relative z-10 space-y-5 p-4 sm:p-6">
-            <section className="space-y-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div>
+            {activeNav === "Grow plan" && <GrowPlanView notify={notify} />}
+            {activeNav === "Advisory" && <AdvisoryView notify={notify} />}
+            {activeNav === "Market" && <MarketView notify={notify} />}
+            {activeNav === "Sell vs store" && <SellVsStoreView notify={notify} />}
+            {activeNav === "Storage" && <StorageView notify={notify} />}
+            {activeNav === "Buyers" && <BuyersView notify={notify} />}
+            {activeNav === "Profit" && <ProfitView notify={notify} />}
+
+            {activeNav === "Overview" && (
+              <div className="space-y-5">
+                <section className="space-y-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
                   <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-faint">
                     <span className="pulse-dot size-1.5 rounded-full bg-leaf" /> Decision cockpit
                   </div>
@@ -562,6 +627,8 @@ function Index() {
                 </button>
               </div>
             </section>
+          </div>
+        )}
           </div>
         </main>
       </div>
