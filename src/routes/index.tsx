@@ -24,6 +24,7 @@ import {
   X,
   EyeOff,
   Eye,
+  User,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,6 +37,7 @@ import { BuyersView } from "../components/views/BuyersView";
 import { ProfitView } from "../components/views/ProfitView";
 import { LanguageSelector } from "../components/LanguageSelector";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { FarmerProfileModal, FarmerProfile } from "../components/FarmerProfileModal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -91,7 +93,39 @@ function Index() {
   const [locked, setLocked] = useState(false);
   const [showFarmForm, setShowFarmForm] = useState(false);
   const [showWorkflowBar, setShowWorkflowBar] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [toast, setToast] = useState("");
+
+  // Farmer & Farm Profile state with local persistence
+  const [farmerProfile, setFarmerProfile] = useState<FarmerProfile>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("farmer_profile");
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return {
+      name: "Ravi Deshmukh",
+      phone: "+91 98230 41102",
+      location: "Pune, Maharashtra",
+      farmName: "Deshmukh Agro",
+      landArea: "6.4 acres",
+      soilType: "Black cotton",
+      soilPh: "7.1",
+      waterSource: "Drip + monsoon",
+      budget: "₹2,10,000",
+      targetCrop: "Soybean (Vrindavan)",
+    };
+  });
+
+  const handleSaveProfile = (updatedProfile: FarmerProfile) => {
+    setFarmerProfile(updatedProfile);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("farmer_profile", JSON.stringify(updatedProfile));
+    }
+  };
 
   // Determine current active step index dynamically
   const activeStepIndex = useMemo(() => {
@@ -115,11 +149,13 @@ function Index() {
   const exportPlan = () => {
     const plan = [
       "VERDANT AGRIDECK · FARM-TO-MARKET PLAN",
-      "Farm: Deshmukh Agro · Pune, Maharashtra · 6.4 acres",
-      "Crop: Soybean (Vrindavan)",
+      `Farmer: ${farmerProfile.name} (${farmerProfile.phone})`,
+      `Farm: ${farmerProfile.farmName} · ${farmerProfile.location} · ${farmerProfile.landArea}`,
+      `Soil: ${farmerProfile.soilType} (pH ${farmerProfile.soilPh}) · Water: ${farmerProfile.waterSource}`,
+      `Crop: ${farmerProfile.targetCrop}`,
       `Decision: ${decision.title} · ${decision.value}`,
       "Buyer: Krishna Oils Ltd · ₹4,350/t · Grade A",
-      "Expected net profit: ₹3.41 L · Risk: Low",
+      `Expected net profit: ₹3.41 L · Season Budget: ${farmerProfile.budget}`,
     ].join("\n");
     const blob = new Blob([plan], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -258,20 +294,23 @@ function Index() {
             <div className="flex items-center gap-2 text-xs">
               <LanguageSelector />
               <ThemeToggle />
-              <div className="hidden rounded-md bg-panel px-3 py-1.5 text-mute ring-1 ring-line sm:block">
-                {t("header.currency")}
-              </div>
+
+              {/* Location Badge */}
               <div className="hidden items-center gap-1.5 rounded-md bg-panel px-3 py-1.5 text-mute ring-1 ring-line sm:flex">
-                <MapPin className="size-3.5 text-aqua" /> Pune, MH
+                <MapPin className="size-3.5 text-aqua" /> {farmerProfile.location}
               </div>
+
+              {/* Farmer Profile Button */}
               <button
                 type="button"
-                className="hidden items-center gap-2 rounded-md bg-panel px-2.5 py-1.5 ring-1 ring-line sm:flex"
-                onClick={() => notify("Profile settings are ready for your next plan")}
+                className="flex items-center gap-2 rounded-md bg-panel px-2.5 py-1.5 ring-1 ring-line hover:bg-panel2 transition-colors"
+                onClick={() => setShowProfileModal(true)}
+                title="Edit Farmer & Farm Profile"
               >
-                <span className="pulse-dot size-2 rounded-full bg-gold" />
-                <span className="text-ink">{t("header.profileName")}</span>
+                <User className="size-3.5 text-leaf" />
+                <span className="text-ink font-medium">{farmerProfile.name}</span>
               </button>
+
               <button
                 type="button"
                 className="grid size-8 place-items-center rounded-md bg-panel text-mute ring-1 ring-line hover:text-ink"
@@ -326,26 +365,32 @@ function Index() {
                     </div>
                   </div>
 
+                  {/* Context Cards dynamically populated from Farmer Profile */}
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <ContextCard
                       label={t("overview.farm")}
-                      value="Deshmukh Agro"
-                      note="Pune · MH · 6.4 ac"
+                      value={farmerProfile.farmName}
+                      note={`${farmerProfile.location} · ${farmerProfile.landArea}`}
                       icon={Wheat}
                     />
                     <ContextCard
                       label={t("overview.soil")}
-                      value="Black cotton"
-                      note="pH 7.1 · Loam rich"
+                      value={farmerProfile.soilType}
+                      note={`pH ${farmerProfile.soilPh}`}
                       icon={Sprout}
                     />
                     <ContextCard
                       label={t("overview.water")}
-                      value="Drip + monsoon"
+                      value={farmerProfile.waterSource}
                       note="Aqua 3.2 ac-in"
                       icon={Droplets}
                     />
-                    <ContextCard label={t("overview.budget")} value="₹2.1 L" note="Season cap set" icon={Gauge} />
+                    <ContextCard
+                      label={t("overview.budget")}
+                      value={farmerProfile.budget}
+                      note="Season cap set"
+                      icon={Gauge}
+                    />
                   </div>
 
                   {/* Interactive Dynamic Farm-to-Market Stepper */}
@@ -742,18 +787,20 @@ function Index() {
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <label className="text-xs text-mute">
                 {t("overview.location")}
-                <input className="field-control" defaultValue="Pune, Maharashtra" />
+                <input className="field-control" defaultValue={farmerProfile.location} />
               </label>
               <label className="text-xs text-mute">
                 {t("overview.landArea")}
-                <input className="field-control" defaultValue="6.4 acres" />
+                <input className="field-control" defaultValue={farmerProfile.landArea} />
               </label>
               <label className="text-xs text-mute">
                 {t("overview.soilCondition")}
-                <select className="field-control" defaultValue="Black cotton">
+                <select className="field-control" defaultValue={farmerProfile.soilType}>
                   <option>Black cotton</option>
                   <option>Red loam</option>
                   <option>Alluvial</option>
+                  <option>Sandy loam</option>
+                  <option>Clay loam</option>
                 </select>
               </label>
               <label className="text-xs text-mute">
@@ -787,6 +834,16 @@ function Index() {
           </div>
         </div>
       )}
+
+      {/* Farmer Profile Modal */}
+      <FarmerProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        profile={farmerProfile}
+        onSave={handleSaveProfile}
+        notify={notify}
+      />
+
       {toast && (
         <div className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-md bg-panel2 px-4 py-3 text-sm text-ink shadow-xl ring-1 ring-line">
           <Check className="size-4 text-leaf" /> {toast}
@@ -813,8 +870,8 @@ function ContextCard({
         <div className="text-[11px] uppercase tracking-[0.14em] text-faint">{label}</div>
         <Icon className="size-3.5 text-faint" />
       </div>
-      <div className="mt-1 text-sm font-medium">{value}</div>
-      <div className="text-xs text-mute">{note}</div>
+      <div className="mt-1 text-sm font-medium truncate">{value}</div>
+      <div className="text-xs text-mute truncate">{note}</div>
     </div>
   );
 }
