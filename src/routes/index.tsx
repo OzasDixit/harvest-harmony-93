@@ -17,7 +17,6 @@ import {
   PanelLeft,
   ShieldCheck,
   Sprout,
-  Store,
   SunMedium,
   Users,
   Wheat,
@@ -28,7 +27,6 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { MarketView } from "../components/views/MarketView";
 import { GrowPlanView } from "../components/views/GrowPlanView";
 import { AdvisoryView } from "../components/views/AdvisoryView";
 import { SellVsStoreView } from "../components/views/SellVsStoreView";
@@ -64,7 +62,6 @@ const navItemDefs = [
   { id: "Overview", translationKey: "nav.overview", icon: PanelLeft },
   { id: "Grow plan", translationKey: "nav.growPlan", icon: Sprout },
   { id: "Advisory", translationKey: "nav.advisory", icon: Activity },
-  { id: "Market", translationKey: "nav.market", icon: Store },
   { id: "Sell vs store", translationKey: "nav.sellVsStore", icon: PackageCheck },
   { id: "Storage", translationKey: "nav.storage", icon: ShieldCheck },
   { id: "Buyers", translationKey: "nav.buyers", icon: Users },
@@ -74,11 +71,10 @@ const navItemDefs = [
 const workflowSteps = [
   { id: "Grow plan", translationKey: "nav.growPlan", stepNum: "01" },
   { id: "Advisory", translationKey: "nav.advisory", stepNum: "02" },
-  { id: "Market", translationKey: "nav.market", stepNum: "03" },
-  { id: "Sell vs store", translationKey: "nav.sellVsStore", stepNum: "04" },
-  { id: "Storage", translationKey: "nav.storage", stepNum: "05" },
-  { id: "Buyers", translationKey: "nav.buyers", stepNum: "06" },
-  { id: "Profit", translationKey: "nav.profit", stepNum: "07" },
+  { id: "Sell vs store", translationKey: "nav.sellVsStore", stepNum: "03" },
+  { id: "Storage", translationKey: "nav.storage", stepNum: "04" },
+  { id: "Buyers", translationKey: "nav.buyers", stepNum: "05" },
+  { id: "Profit", translationKey: "nav.profit", stepNum: "06" },
 ];
 
 const priceBars = ["h-8", "h-11", "h-7", "h-14", "h-10", "h-12", "h-14"];
@@ -325,7 +321,6 @@ function Index() {
           <div className="relative z-10 space-y-5 p-4 sm:p-6">
             {activeNav === "Grow plan" && <GrowPlanView notify={notify} />}
             {activeNav === "Advisory" && <AdvisoryView notify={notify} />}
-            {activeNav === "Market" && <MarketView notify={notify} />}
             {activeNav === "Sell vs store" && <SellVsStoreView notify={notify} />}
             {activeNav === "Storage" && <StorageView notify={notify} />}
             {activeNav === "Buyers" && <BuyersView notify={notify} />}
@@ -402,7 +397,7 @@ function Index() {
                         </span>
                         <div className="flex items-center gap-3">
                           <span className="font-mono text-[11px] text-mute">
-                            {t("overview.step")} 0{activeStepIndex + 1} / 07
+                            {t("overview.step")} 0{activeStepIndex + 1} / 06
                           </span>
                           <button
                             type="button"
@@ -414,7 +409,7 @@ function Index() {
                           </button>
                         </div>
                       </div>
-                      <div className="grid min-w-[680px] grid-cols-7 gap-2">
+                      <div className="grid min-w-[580px] grid-cols-6 gap-2">
                         {workflowSteps.map((step, index) => {
                           const done = index < activeStepIndex;
                           const current = index === activeStepIndex;
