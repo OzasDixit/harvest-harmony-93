@@ -15,7 +15,6 @@ import {
   MessageSquareText,
   PackageCheck,
   PanelLeft,
-  Search,
   ShieldCheck,
   Sprout,
   Store,
@@ -23,6 +22,8 @@ import {
   Users,
   Wheat,
   X,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -34,6 +35,7 @@ import { StorageView } from "../components/views/StorageView";
 import { BuyersView } from "../components/views/BuyersView";
 import { ProfitView } from "../components/views/ProfitView";
 import { LanguageSelector } from "../components/LanguageSelector";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -67,29 +69,35 @@ const navItemDefs = [
   { id: "Profit", translationKey: "nav.profit", icon: Gauge },
 ];
 
+const workflowSteps = [
+  { id: "Grow plan", translationKey: "nav.growPlan", stepNum: "01" },
+  { id: "Advisory", translationKey: "nav.advisory", stepNum: "02" },
+  { id: "Market", translationKey: "nav.market", stepNum: "03" },
+  { id: "Sell vs store", translationKey: "nav.sellVsStore", stepNum: "04" },
+  { id: "Storage", translationKey: "nav.storage", stepNum: "05" },
+  { id: "Buyers", translationKey: "nav.buyers", stepNum: "06" },
+  { id: "Profit", translationKey: "nav.profit", stepNum: "07" },
+];
+
 const priceBars = ["h-8", "h-11", "h-7", "h-14", "h-10", "h-12", "h-14"];
 
 function Index() {
   const { t } = useTranslation();
   const [activeNav, setActiveNav] = useState("Overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeStep, setActiveStep] = useState(3);
   const [sellMode, setSellMode] = useState<"sell" | "store">("store");
   const [accepted, setAccepted] = useState(false);
   const [advisoryOpen, setAdvisoryOpen] = useState(false);
   const [locked, setLocked] = useState(false);
   const [showFarmForm, setShowFarmForm] = useState(false);
+  const [showWorkflowBar, setShowWorkflowBar] = useState(true);
   const [toast, setToast] = useState("");
 
-  const workflow = useMemo(() => [
-    t("nav.growPlan"),
-    "Cultivate",
-    "Harvest",
-    t("nav.sellVsStore"),
-    t("nav.storage"),
-    t("nav.buyers"),
-    t("nav.profit")
-  ], [t]);
+  // Determine current active step index dynamically
+  const activeStepIndex = useMemo(() => {
+    const idx = workflowSteps.findIndex((s) => s.id === activeNav);
+    return idx >= 0 ? idx : 0; // Default to Step 01 if on Overview
+  }, [activeNav]);
 
   const decision = useMemo(
     () =>
@@ -125,10 +133,10 @@ function Index() {
 
   return (
     <div className="min-h-screen bg-ground font-sans text-ink antialiased">
-      <div className="dashboard-aura pointer-events-none fixed inset-0 opacity-70" />
+      <div className="dashboard-aura pointer-events-none fixed inset-0" />
       <div className="relative flex min-h-screen">
         {/* Desktop Sidebar */}
-        <aside className="hidden w-60 shrink-0 border-r border-line bg-panel/70 lg:flex lg:flex-col">
+        <aside className="hidden w-60 shrink-0 border-r border-line bg-panel/80 backdrop-blur-md lg:flex lg:flex-col">
           <div className="flex h-14 items-center gap-2 border-b border-line px-5">
             <div className="grid size-7 place-items-center rounded-[5px] bg-leaf/15 ring-1 ring-leaf/40">
               <Leaf className="size-3.5 text-leaf" />
@@ -153,12 +161,12 @@ function Index() {
                   }}
                   className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors ${
                     activeNav === id
-                      ? "bg-leaf/10 text-ink ring-1 ring-leaf/20"
+                      ? "bg-leaf/15 text-ink ring-1 ring-leaf/30 font-medium"
                       : "text-mute hover:bg-panel2 hover:text-ink"
                   }`}
                 >
                   <Icon className={`size-4 ${activeNav === id ? "text-leaf" : "text-faint"}`} />
-                  <span className={activeNav === id ? "font-medium" : ""}>{label}</span>
+                  <span>{label}</span>
                 </button>
               );
             })}
@@ -196,8 +204,9 @@ function Index() {
                 </button>
               </div>
 
-              <div className="mb-3">
+              <div className="mb-3 flex items-center gap-2">
                 <LanguageSelector />
+                <ThemeToggle />
               </div>
 
               <nav className="space-y-1">
@@ -214,7 +223,7 @@ function Index() {
                       }}
                       className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors ${
                         activeNav === id
-                          ? "bg-leaf/10 text-ink ring-1 ring-leaf/20 font-medium"
+                          ? "bg-leaf/15 text-ink ring-1 ring-leaf/30 font-medium"
                           : "text-mute hover:bg-panel2 hover:text-ink"
                       }`}
                     >
@@ -246,8 +255,9 @@ function Index() {
               <span className="font-medium text-ink">{t("header.seasonPlan")}</span>
             </div>
 
-            <div className="flex items-center gap-2.5 text-xs">
+            <div className="flex items-center gap-2 text-xs">
               <LanguageSelector />
+              <ThemeToggle />
               <div className="hidden rounded-md bg-panel px-3 py-1.5 text-mute ring-1 ring-line sm:block">
                 {t("header.currency")}
               </div>
@@ -338,48 +348,96 @@ function Index() {
                     <ContextCard label={t("overview.budget")} value="₹2.1 L" note="Season cap set" icon={Gauge} />
                   </div>
 
-                  <div className="overflow-hidden rounded-md bg-panel p-4 ring-1 ring-line">
-                    <div className="mb-4 flex items-center justify-between">
-                      <span className="text-[11px] uppercase tracking-[0.14em] text-faint">
-                        {t("overview.workflowTitle")}
-                      </span>
-                      <span className="font-mono text-[11px] text-mute">{t("overview.step")} 04 / 07</span>
-                    </div>
-                    <div className="grid min-w-[680px] grid-cols-7 gap-2">
-                      {workflow.map((step, index) => {
-                        const done = index < activeStep;
-                        const current = index === activeStep;
-                        return (
+                  {/* Interactive Dynamic Farm-to-Market Stepper */}
+                  {showWorkflowBar && (
+                    <div className="overflow-hidden rounded-md bg-panel p-4 ring-1 ring-line">
+                      <div className="mb-4 flex items-center justify-between">
+                        <span className="text-[11px] uppercase tracking-[0.14em] text-faint">
+                          {t("overview.workflowTitle")}
+                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-[11px] text-mute">
+                            {t("overview.step")} 0{activeStepIndex + 1} / 07
+                          </span>
                           <button
                             type="button"
-                            key={step}
-                            onClick={() => setActiveStep(index)}
-                            className="text-left"
+                            onClick={() => setShowWorkflowBar(false)}
+                            className="text-faint hover:text-ink text-xs flex items-center gap-1"
+                            title="Hide Workflow Stepper"
                           >
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`grid size-5 shrink-0 place-items-center rounded-full text-[10px] ${done ? "bg-leaf/20 text-leaf ring-1 ring-leaf/50" : current ? "bg-gold/20 text-gold ring-1 ring-gold/40" : "bg-panel2 text-faint ring-1 ring-line"}`}
-                              >
-                                {done ? <Check className="size-3" /> : index + 1}
-                              </span>
-                              <span
-                                className={`truncate text-xs ${current ? "font-medium text-gold" : done ? "font-medium text-ink" : "text-faint"}`}
-                              >
-                                {step}
-                              </span>
-                            </div>
-                            <div
-                              className={`mt-2 h-1 rounded-full ${done ? "bg-leaf" : current ? "bg-line" : "bg-line"}`}
-                            >
-                              <div
-                                className={`h-full rounded-full ${current ? "w-1/2 bg-gold" : "w-0"}`}
-                              />
-                            </div>
+                            <EyeOff className="size-3.5" />
                           </button>
-                        );
-                      })}
+                        </div>
+                      </div>
+                      <div className="grid min-w-[680px] grid-cols-7 gap-2">
+                        {workflowSteps.map((step, index) => {
+                          const done = index < activeStepIndex;
+                          const current = index === activeStepIndex;
+                          const stepTitle = t(step.translationKey);
+
+                          return (
+                            <button
+                              type="button"
+                              key={step.id}
+                              onClick={() => {
+                                setActiveNav(step.id);
+                                notify(`${stepTitle} view opened`);
+                              }}
+                              className="text-left group transition-all"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`grid size-5 shrink-0 place-items-center rounded-full text-[10px] transition-colors ${
+                                    done
+                                      ? "bg-leaf/20 text-leaf ring-1 ring-leaf/50"
+                                      : current
+                                      ? "bg-gold/20 text-gold ring-1 ring-gold/40 font-bold"
+                                      : "bg-panel2 text-faint ring-1 ring-line group-hover:border-leaf"
+                                  }`}
+                                >
+                                  {done ? <Check className="size-3" /> : index + 1}
+                                </span>
+                                <span
+                                  className={`truncate text-xs ${
+                                    current
+                                      ? "font-semibold text-gold"
+                                      : done
+                                      ? "font-medium text-ink"
+                                      : "text-faint group-hover:text-ink"
+                                  }`}
+                                >
+                                  {stepTitle}
+                                </span>
+                              </div>
+                              <div
+                                className={`mt-2 h-1 rounded-full ${
+                                  done ? "bg-leaf" : current ? "bg-gold/40" : "bg-line"
+                                }`}
+                              >
+                                <div
+                                  className={`h-full rounded-full transition-all ${
+                                    current ? "w-full bg-gold" : done ? "w-full bg-leaf" : "w-0"
+                                  }`}
+                                />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {!showWorkflowBar && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setShowWorkflowBar(true)}
+                        className="text-xs text-mute hover:text-ink flex items-center gap-1.5 rounded-md bg-panel px-3 py-1.5 ring-1 ring-line"
+                      >
+                        <Eye className="size-3.5 text-leaf" /> Show Workflow Stepper
+                      </button>
+                    </div>
+                  )}
                 </section>
 
                 <section className="grid gap-4 xl:grid-cols-5">
