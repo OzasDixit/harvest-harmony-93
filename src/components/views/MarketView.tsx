@@ -22,6 +22,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 import {
   INITIAL_MANDI_DATA,
   MandiRecord,
@@ -35,6 +36,7 @@ interface MarketViewProps {
 }
 
 export function MarketView({ notify }: MarketViewProps) {
+  const { t } = useTranslation();
   const [data, setData] = useState<MandiRecord[]>(INITIAL_MANDI_DATA);
   const [selectedState, setSelectedState] = useState<string>("All");
   const [selectedCommodity, setSelectedCommodity] = useState<string>("All");
@@ -136,18 +138,18 @@ export function MarketView({ notify }: MarketViewProps) {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-leaf">
-              <Store className="size-4 text-leaf" /> Kaggle Mandi Dataset Intelligence
+              <Store className="size-4 text-leaf" /> {t("market.tagline")}
             </div>
             <h2 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">
-              Daily Wholesale Commodity Prices (India Mandis)
+              {t("market.title")}
             </h2>
             <p className="mt-1 text-sm text-mute">
-              Real-time AGMARKNET dataset tracking wholesale crop prices, mandi arrivals, min/max/modal price spreads across Indian states.
+              {t("market.subtitle")}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="action-secondary cursor-pointer text-xs">
-              <Upload className="size-3.5 text-aqua" /> Load Custom CSV
+              <Upload className="size-3.5 text-aqua" /> {t("market.loadCustomCsv")}
               <input
                 type="file"
                 accept=".csv"
@@ -160,7 +162,7 @@ export function MarketView({ notify }: MarketViewProps) {
               onClick={handleExportCSV}
               className="action-primary text-xs"
             >
-              <Download className="size-3.5" /> Export Dataset CSV
+              <Download className="size-3.5" /> {t("market.exportDatasetCsv")}
             </button>
           </div>
         </div>
@@ -169,46 +171,46 @@ export function MarketView({ notify }: MarketViewProps) {
       {/* Statistics Cards */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-md bg-panel p-4 ring-1 ring-line">
-          <div className="text-xs text-faint uppercase tracking-wider">Average Modal Price</div>
+          <div className="text-xs text-faint uppercase tracking-wider">{t("market.avgModalPrice")}</div>
           <div className="mt-1 font-mono text-2xl font-semibold text-leaf">
             ₹{stats.avgModal.toLocaleString("en-IN")}{" "}
-            <span className="text-xs text-mute font-sans">/ Quintal</span>
+            <span className="text-xs text-mute font-sans">{t("market.perQuintal")}</span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-xs text-mute">
-            <TrendingUp className="size-3 text-leaf" /> Calculated across {filteredData.length} mandis
+            <TrendingUp className="size-3 text-leaf" /> {t("market.acrossMandis", { count: filteredData.length })}
           </div>
         </div>
 
         <div className="rounded-md bg-panel p-4 ring-1 ring-line">
-          <div className="text-xs text-faint uppercase tracking-wider">Max Price Peak</div>
+          <div className="text-xs text-faint uppercase tracking-wider">{t("market.maxPricePeak")}</div>
           <div className="mt-1 font-mono text-2xl font-semibold text-gold">
             ₹{stats.maxPrice.toLocaleString("en-IN")}{" "}
-            <span className="text-xs text-mute font-sans">/ Quintal</span>
+            <span className="text-xs text-mute font-sans">{t("market.perQuintal")}</span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-xs text-mute">
-            <ArrowUpRight className="size-3 text-gold" /> Highest grade offer
+            <ArrowUpRight className="size-3 text-gold" /> {t("market.highestGradeOffer")}
           </div>
         </div>
 
         <div className="rounded-md bg-panel p-4 ring-1 ring-line">
-          <div className="text-xs text-faint uppercase tracking-wider">Min Price Base</div>
+          <div className="text-xs text-faint uppercase tracking-wider">{t("market.minPriceBase")}</div>
           <div className="mt-1 font-mono text-2xl font-semibold text-ink">
             ₹{stats.minPrice.toLocaleString("en-IN")}{" "}
-            <span className="text-xs text-mute font-sans">/ Quintal</span>
+            <span className="text-xs text-mute font-sans">{t("market.perQuintal")}</span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-xs text-mute">
-            <ArrowDownRight className="size-3 text-faint" /> Lower bound floor
+            <ArrowDownRight className="size-3 text-faint" /> {t("market.lowerBoundFloor")}
           </div>
         </div>
 
         <div className="rounded-md bg-panel p-4 ring-1 ring-line">
-          <div className="text-xs text-faint uppercase tracking-wider">Total Market Arrivals</div>
+          <div className="text-xs text-faint uppercase tracking-wider">{t("market.totalArrivals")}</div>
           <div className="mt-1 font-mono text-2xl font-semibold text-aqua">
             {stats.totalArrivals.toLocaleString("en-IN")}{" "}
-            <span className="text-xs text-mute font-sans">Tonnes</span>
+            <span className="text-xs text-mute font-sans">{t("market.tonnes")}</span>
           </div>
           <div className="mt-2 flex items-center gap-1 text-xs text-mute">
-            <Layers className="size-3 text-aqua" /> Aggregate daily volume
+            <Layers className="size-3 text-aqua" /> {t("market.aggregateVolume")}
           </div>
         </div>
       </div>
@@ -216,7 +218,7 @@ export function MarketView({ notify }: MarketViewProps) {
       {/* Filters Bar */}
       <div className="flex flex-wrap items-center gap-3 rounded-md bg-panel p-3.5 ring-1 ring-line">
         <div className="flex items-center gap-2 text-xs font-medium text-mute">
-          <Filter className="size-3.5 text-leaf" /> Filter dataset:
+          <Filter className="size-3.5 text-leaf" /> {t("market.filterDataset")}
         </div>
 
         <div className="flex-1 min-w-[140px]">
@@ -225,7 +227,7 @@ export function MarketView({ notify }: MarketViewProps) {
             onChange={(e) => setSelectedState(e.target.value)}
             className="w-full rounded-md border border-line bg-panel2 px-3 py-1.5 text-xs text-ink focus:border-leaf focus:outline-none"
           >
-            <option value="All">All States ({states.length - 1})</option>
+            <option value="All">{t("market.allStates")} ({states.length - 1})</option>
             {states
               .filter((s) => s !== "All")
               .map((s) => (
@@ -242,7 +244,7 @@ export function MarketView({ notify }: MarketViewProps) {
             onChange={(e) => setSelectedCommodity(e.target.value)}
             className="w-full rounded-md border border-line bg-panel2 px-3 py-1.5 text-xs text-ink focus:border-leaf focus:outline-none"
           >
-            <option value="All">All Commodities ({commodities.length - 1})</option>
+            <option value="All">{t("market.allCommodities")} ({commodities.length - 1})</option>
             {commodities
               .filter((c) => c !== "All")
               .map((c) => (
@@ -257,7 +259,7 @@ export function MarketView({ notify }: MarketViewProps) {
           <Search className="absolute left-2.5 top-2.5 size-3.5 text-faint" />
           <input
             type="text"
-            placeholder="Search mandi, district, variety..."
+            placeholder={t("market.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-md border border-line bg-panel2 pl-8 pr-3 py-1.5 text-xs text-ink placeholder:text-faint focus:border-leaf focus:outline-none"
@@ -274,7 +276,7 @@ export function MarketView({ notify }: MarketViewProps) {
             }}
             className="flex items-center gap-1 rounded-md bg-panel2 px-2.5 py-1.5 text-xs text-mute hover:text-ink ring-1 ring-line"
           >
-            <RefreshCw className="size-3" /> Reset
+            <RefreshCw className="size-3" /> {t("market.reset")}
           </button>
         )}
       </div>
@@ -283,9 +285,9 @@ export function MarketView({ notify }: MarketViewProps) {
       <div className="rounded-md bg-panel p-4 ring-1 ring-line">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-faint">
-            <BarChart3 className="size-4 text-gold" /> Mandi Modal Price Comparison (₹ / Quintal)
+            <BarChart3 className="size-4 text-gold" /> {t("market.mandiModalComparison")}
           </div>
-          <span className="text-xs text-mute">Top 10 Mandis</span>
+          <span className="text-xs text-mute">{t("market.top10Mandis")}</span>
         </div>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -318,32 +320,32 @@ export function MarketView({ notify }: MarketViewProps) {
       <div className="overflow-hidden rounded-md bg-panel ring-1 ring-line">
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <div className="text-xs font-semibold uppercase tracking-wider text-mute">
-            Kaggle AGMARKNET Records ({filteredData.length} results)
+            {t("market.recordsCount", { count: filteredData.length })}
           </div>
-          <div className="text-xs text-faint">Prices in INR (₹) per Quintal (100 kg)</div>
+          <div className="text-xs text-faint">{t("market.pricesInInr")}</div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-panel2 text-faint uppercase tracking-wider">
               <tr>
-                <th className="px-4 py-3 font-medium">State</th>
-                <th className="px-4 py-3 font-medium">District</th>
-                <th className="px-4 py-3 font-medium">Market Mandi</th>
-                <th className="px-4 py-3 font-medium">Commodity</th>
-                <th className="px-4 py-3 font-medium">Variety</th>
-                <th className="px-4 py-3 font-medium">Date</th>
-                <th className="px-4 py-3 font-medium text-right">Min (₹)</th>
-                <th className="px-4 py-3 font-medium text-right">Max (₹)</th>
-                <th className="px-4 py-3 font-medium text-right">Modal (₹)</th>
-                <th className="px-4 py-3 font-medium text-right">Arrivals (t)</th>
+                <th className="px-4 py-3 font-medium">{t("market.state")}</th>
+                <th className="px-4 py-3 font-medium">{t("market.district")}</th>
+                <th className="px-4 py-3 font-medium">{t("market.marketMandi")}</th>
+                <th className="px-4 py-3 font-medium">{t("market.commodity")}</th>
+                <th className="px-4 py-3 font-medium">{t("market.variety")}</th>
+                <th className="px-4 py-3 font-medium">{t("market.date")}</th>
+                <th className="px-4 py-3 font-medium text-right">{t("market.min")}</th>
+                <th className="px-4 py-3 font-medium text-right">{t("market.max")}</th>
+                <th className="px-4 py-3 font-medium text-right">{t("market.modal")}</th>
+                <th className="px-4 py-3 font-medium text-right">{t("market.arrivals")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line/60 text-ink">
               {filteredData.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-8 text-center text-mute">
-                    No mandi records match your filter criteria.
+                    {t("market.noRecords")}
                   </td>
                 </tr>
               ) : (

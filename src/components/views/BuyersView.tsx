@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Users, Check, ArrowUpRight, ShieldCheck, MapPin, Building, FileCheck } from "lucide-react";
+import { Users, Check, ArrowUpRight, MapPin, Building, FileCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface BuyersViewProps {
   notify?: (msg: string) => void;
 }
 
 export function BuyersView({ notify }: BuyersViewProps) {
+  const { t } = useTranslation();
   const [lockedBuyerId, setLockedBuyerId] = useState<string | null>("b-1");
 
   const buyers = [
@@ -26,13 +28,13 @@ export function BuyersView({ notify }: BuyersViewProps) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-leaf">
-              <Users className="size-4 text-leaf" /> Verified Buyer Network
+              <Users className="size-4 text-leaf" /> {t("buyers.verifiedNetwork")}
             </div>
             <h2 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">
-              Buyer Matching & Offer Marketplace
+              {t("buyers.title")}
             </h2>
             <p className="mt-1 text-sm text-mute">
-              Pre-vetted institutional buyers matching your Soybean yield of 12.2 tonnes.
+              {t("buyers.subtitle")}
             </p>
           </div>
         </div>
@@ -54,7 +56,7 @@ export function BuyersView({ notify }: BuyersViewProps) {
                   <h3 className="text-base font-bold text-ink">{buyer.name}</h3>
                   {buyer.best && (
                     <span className="rounded bg-leaf/20 px-2 py-0.5 text-[10px] font-semibold text-leaf flex items-center gap-1">
-                      <ArrowUpRight className="size-3" /> Best Net Offer
+                      <ArrowUpRight className="size-3" /> {t("buyers.bestNetOffer")}
                     </span>
                   )}
                 </div>
@@ -65,8 +67,8 @@ export function BuyersView({ notify }: BuyersViewProps) {
                   <span className="flex items-center gap-1">
                     <MapPin className="size-3.5 text-aqua" /> {buyer.location}
                   </span>
-                  <span>Min Order: {buyer.minQty}</span>
-                  <span>Grade: {buyer.grade}</span>
+                  <span>{t("buyers.minOrder")} {buyer.minQty}</span>
+                  <span>{t("buyers.grade")} {buyer.grade}</span>
                 </div>
               </div>
 
@@ -82,7 +84,7 @@ export function BuyersView({ notify }: BuyersViewProps) {
                   className={lockedBuyerId === buyer.id ? "action-primary bg-leaf" : "action-secondary"}
                 >
                   {lockedBuyerId === buyer.id ? <Check className="size-4" /> : <FileCheck className="size-4" />}
-                  {lockedBuyerId === buyer.id ? "Contract Locked" : "Lock Contract"}
+                  {lockedBuyerId === buyer.id ? t("buyers.contractLocked") : t("buyers.lockContract")}
                 </button>
               </div>
             </div>

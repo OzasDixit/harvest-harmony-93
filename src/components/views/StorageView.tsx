@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { ShieldCheck, MapPin, Thermometer, Check, Calendar, Lock } from "lucide-react";
+import { ShieldCheck, MapPin, Thermometer, Check, Lock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface StorageViewProps {
   notify?: (msg: string) => void;
 }
 
 export function StorageView({ notify }: StorageViewProps) {
+  const { t } = useTranslation();
   const [bookedId, setBookedId] = useState<string | null>("st-2");
 
   const facilities = [
@@ -25,13 +27,13 @@ export function StorageView({ notify }: StorageViewProps) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-leaf">
-              <ShieldCheck className="size-4 text-leaf" /> Climate-Controlled Warehousing
+              <ShieldCheck className="size-4 text-leaf" /> {t("storage.warehousing")}
             </div>
             <h2 className="text-xl font-bold tracking-tight text-ink sm:text-2xl">
-              Nearby Cold Storage Directory
+              {t("storage.title")}
             </h2>
             <p className="mt-1 text-sm text-mute">
-              Verified temperature & humidity-regulated storage facilities near Pune & Nashik.
+              {t("storage.subtitle")}
             </p>
           </div>
         </div>
@@ -53,18 +55,18 @@ export function StorageView({ notify }: StorageViewProps) {
                   <h3 className="text-base font-bold text-ink">{fac.name}</h3>
                   {fac.recommended && (
                     <span className="rounded bg-leaf/20 px-2 py-0.5 text-[10px] font-semibold text-leaf">
-                      Optimal Choice
+                      {t("storage.optimalChoice")}
                     </span>
                   )}
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-4 text-xs text-mute">
                   <span className="flex items-center gap-1">
-                    <MapPin className="size-3.5 text-aqua" /> {fac.distance} away
+                    <MapPin className="size-3.5 text-aqua" /> {fac.distance} {t("storage.away")}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Thermometer className="size-3.5 text-gold" /> Temp: {fac.temp} ({fac.humidity} RH)
+                    <Thermometer className="size-3.5 text-gold" /> {t("storage.temp")} {fac.temp} ({fac.humidity} RH)
                   </span>
-                  <span>Cap: {fac.capacity}</span>
+                  <span>{t("storage.cap")} {fac.capacity}</span>
                   <span className="text-gold font-medium">{fac.rating}</span>
                 </div>
               </div>
@@ -72,7 +74,7 @@ export function StorageView({ notify }: StorageViewProps) {
               <div className="flex items-center gap-3">
                 <div className="text-right">
                   <div className="font-mono text-sm font-bold text-leaf">{fac.rate}</div>
-                  <div className="text-[11px] text-faint">Insurance included</div>
+                  <div className="text-[11px] text-faint">{t("storage.insuranceIncluded")}</div>
                 </div>
 
                 <button
@@ -81,7 +83,7 @@ export function StorageView({ notify }: StorageViewProps) {
                   className={bookedId === fac.id ? "action-primary bg-leaf" : "action-secondary"}
                 >
                   {bookedId === fac.id ? <Check className="size-4" /> : <Lock className="size-4" />}
-                  {bookedId === fac.id ? "Reserved" : "Reserve Slot"}
+                  {bookedId === fac.id ? t("storage.reserved") : t("storage.reserveSlot")}
                 </button>
               </div>
             </div>
