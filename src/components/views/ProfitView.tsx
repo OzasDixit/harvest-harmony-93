@@ -37,7 +37,7 @@ export function ProfitView({ notify }: ProfitViewProps) {
 
   const exportFinancials = () => {
     const report = [
-      "VERDANT AGRIDECK · FARM PROFIT & LOSS REPORT",
+      "KRISHIASTRA · FARM PROFIT & LOSS REPORT",
       `Gross Revenue: ₹${financialSummary.grossRevenue.toLocaleString("en-IN")}`,
       `Total Cost: ₹${totalExpense.toLocaleString("en-IN")}`,
       `Net Profit: ₹${netProfit.toLocaleString("en-IN")}`,

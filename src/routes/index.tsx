@@ -21,11 +21,17 @@ import {
   Users,
   Wheat,
   X,
-  EyeOff,
-  Eye,
   User,
+  Warehouse,
+  Building,
+  Settings,
+  LogIn,
+  LogOut,
+  KeyRound,
+  Layers,
+  Sparkles,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { GrowPlanView } from "../components/views/GrowPlanView";
 import { AdvisoryView } from "../components/views/AdvisoryView";
@@ -33,20 +39,34 @@ import { SellVsStoreView } from "../components/views/SellVsStoreView";
 import { StorageView } from "../components/views/StorageView";
 import { BuyersView } from "../components/views/BuyersView";
 import { ProfitView } from "../components/views/ProfitView";
+import { BuyerDashboardView } from "../components/views/BuyerDashboardView";
+import { AccountSettingsView } from "../components/views/AccountSettingsView";
+import { AuthModal } from "../components/AuthModal";
 import { LanguageSelector } from "../components/LanguageSelector";
 import { ThemeToggle } from "../components/ThemeToggle";
-import { FarmerProfileModal, FarmerProfile } from "../components/FarmerProfileModal";
+import { FarmerProfileModal } from "../components/FarmerProfileModal";
+import {
+  fetchCurrentProfile,
+  AuthSessionResponse,
+} from "../lib/api-client";
+import {
+  UserAccount,
+  FarmerProfileEntity,
+  BuyerProfileEntity,
+  UserRole,
+  BuyerClassification,
+} from "../server/api-handler";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Verdant Agrideck | Farm-to-market intelligence" },
+      { title: "KrishiAstra | Farm-to-market intelligence" },
       {
         name: "description",
         content:
           "AI-powered crop planning, cultivation guidance, market intelligence, and buyer matching for farm-to-market decisions.",
       },
-      { property: "og:title", content: "Verdant Agrideck | Farm-to-market intelligence" },
+      { property: "og:title", content: "KrishiAstra | Farm-to-market intelligence" },
       {
         property: "og:description",
         content: "Turn soil, weather, and market signals into one confident farm-to-market plan.",
@@ -58,76 +78,155 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const navItemDefs = [
-  { id: "Overview", translationKey: "nav.overview", icon: PanelLeft },
-  { id: "Grow plan", translationKey: "nav.growPlan", icon: Sprout },
-  { id: "Advisory", translationKey: "nav.advisory", icon: Activity },
-  { id: "Sell vs store", translationKey: "nav.sellVsStore", icon: PackageCheck },
-  { id: "Storage", translationKey: "nav.storage", icon: ShieldCheck },
-  { id: "Buyers", translationKey: "nav.buyers", icon: Users },
-  { id: "Profit", translationKey: "nav.profit", icon: Gauge },
+const farmerNavItems = [
+  { id: "Overview", translationKey: "nav.overview", label: "Overview", icon: PanelLeft },
+  { id: "Grow plan", translationKey: "nav.growPlan", label: "Grow plan", icon: Sprout },
+  { id: "Advisory", translationKey: "nav.advisory", label: "Advisory", icon: Activity },
+  { id: "Sell vs store", translationKey: "nav.sellVsStore", label: "Sell vs store", icon: PackageCheck },
+  { id: "Storage", translationKey: "nav.storage", label: "Storage Directory", icon: ShieldCheck },
+  { id: "Buyers", translationKey: "nav.buyers", label: "Mandi & Buyers", icon: Users },
+  { id: "Profit", translationKey: "nav.profit", label: "Profit", icon: Gauge },
+  { id: "Settings", label: "Account & Profile", icon: Settings },
 ];
 
-const workflowSteps = [
-  { id: "Grow plan", translationKey: "nav.growPlan", stepNum: "01" },
-  { id: "Advisory", translationKey: "nav.advisory", stepNum: "02" },
-  { id: "Sell vs store", translationKey: "nav.sellVsStore", stepNum: "03" },
-  { id: "Storage", translationKey: "nav.storage", stepNum: "04" },
-  { id: "Buyers", translationKey: "nav.buyers", stepNum: "05" },
-  { id: "Profit", translationKey: "nav.profit", stepNum: "06" },
+const buyerNavItems = [
+  { id: "Farmer Telemetry", label: "Farmer Directory", icon: Users },
+  { id: "Buyers", label: "Mandi Benchmarks", icon: Activity },
+  { id: "Storage", label: "Cold Storages", icon: ShieldCheck },
+  { id: "Settings", label: "Account & Profile", icon: Settings },
 ];
 
 const priceBars = ["h-8", "h-11", "h-7", "h-14", "h-10", "h-12", "h-14"];
 
 function Index() {
   const { t } = useTranslation();
-  const [activeNav, setActiveNav] = useState("Overview");
+
+  // 1. Authenticated User Session (Defaulting to Ravi Deshmukh - Farmer)
+  const [currentUser, setCurrentUser] = useState<UserAccount>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("krishiastra_auth_user");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.id && parsed.role) return parsed;
+        } catch (e) {}
+      }
+    }
+    return {
+      id: "u-farmer-1",
+      email: "ravi.deshmukh@kisanagro.in",
+      role: "FARMER",
+      name: "Ravi Deshmukh",
+      phone: "+91 98230 41102",
+      location: "Baramati, Pune, Maharashtra",
+    };
+  });
+
+  const isBoth = currentUser.role === "BOTH";
+
+  // Perspective switcher ONLY for users whose account role is BOTH
+  const [bothPerspective, setBothPerspective] = useState<"FARMER" | "BUYER">(() => {
+    if (typeof window !== "undefined") {
+      const savedPersona = localStorage.getItem("krishiastra_active_persona");
+      if (savedPersona === "FARMER" || savedPersona === "BUYER") return savedPersona;
+    }
+    return "FARMER";
+  });
+
+  // Strict persona projection: Farmer is ALWAYS FARMER, Buyer is ALWAYS BUYER, Both uses bothPerspective
+  const activePersona: "FARMER" | "BUYER" =
+    currentUser.role === "FARMER"
+      ? "FARMER"
+      : currentUser.role === "BUYER"
+      ? "BUYER"
+      : bothPerspective;
+
+  // Decoupled Profile Entities
+  const [farmerProfile, setFarmerProfile] = useState<FarmerProfileEntity | null>(null);
+  const [buyerProfile, setBuyerProfile] = useState<BuyerProfileEntity | null>(null);
+
+  const [activeNav, setActiveNav] = useState(() => (activePersona === "FARMER" ? "Overview" : "Farmer Telemetry"));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sellMode, setSellMode] = useState<"sell" | "store">("store");
   const [accepted, setAccepted] = useState(false);
   const [advisoryOpen, setAdvisoryOpen] = useState(false);
   const [locked, setLocked] = useState(false);
   const [showFarmForm, setShowFarmForm] = useState(false);
-  const [showWorkflowBar, setShowWorkflowBar] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [toast, setToast] = useState("");
 
-  // Farmer & Farm Profile state with local persistence
-  const [farmerProfile, setFarmerProfile] = useState<FarmerProfile>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("farmer_profile");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {}
+  // Initial and reactive profile sync with backend
+  useEffect(() => {
+    async function syncBackendProfiles() {
+      const data = await fetchCurrentProfile(currentUser.id);
+      if (data?.success) {
+        if (data.user) setCurrentUser(data.user);
+        if (data.farmerProfile) setFarmerProfile(data.farmerProfile);
+        if (data.buyerProfile) setBuyerProfile(data.buyerProfile);
       }
     }
-    return {
-      name: "Ravi Deshmukh",
-      phone: "+91 98230 41102",
-      location: "Pune, Maharashtra",
-      farmName: "Deshmukh Agro",
-      landArea: "6.4 acres",
-      soilType: "Black cotton",
-      soilPh: "7.1",
-      waterSource: "Drip + monsoon",
-      budget: "₹2,10,000",
-      targetCrop: "Soybean (Vrindavan)",
-    };
-  });
+    syncBackendProfiles();
+  }, [currentUser.id]);
 
-  const handleSaveProfile = (updatedProfile: FarmerProfile) => {
-    setFarmerProfile(updatedProfile);
+  const notify = (message: string) => {
+    setToast(message);
+    window.setTimeout(() => setToast(""), 2800);
+  };
+
+  // Handle switching perspective (Enabled ONLY for BOTH role accounts)
+  const handleSwitchProjection = (newPersona: "FARMER" | "BUYER") => {
+    if (!isBoth) return;
+    setBothPerspective(newPersona);
     if (typeof window !== "undefined") {
-      localStorage.setItem("farmer_profile", JSON.stringify(updatedProfile));
+      localStorage.setItem("krishiastra_active_persona", newPersona);
+    }
+    if (newPersona === "FARMER") {
+      setActiveNav("Overview");
+      notify("Switched View to Farm Console");
+    } else {
+      setActiveNav("Farmer Telemetry");
+      notify("Switched View to Procurement & Storage Console");
     }
   };
 
-  // Determine current active step index dynamically
-  const activeStepIndex = useMemo(() => {
-    const idx = workflowSteps.findIndex((s) => s.id === activeNav);
-    return idx >= 0 ? idx : 0; // Default to Step 01 if on Overview
-  }, [activeNav]);
+  // Handle Auth Session Success (Login/Register)
+  const handleAuthSuccess = (session: AuthSessionResponse) => {
+    setCurrentUser(session.user);
+    if (session.farmerProfile) setFarmerProfile(session.farmerProfile);
+    if (session.buyerProfile) setBuyerProfile(session.buyerProfile);
+
+    if (session.user.role === "BUYER") {
+      setActiveNav("Farmer Telemetry");
+    } else if (session.user.role === "FARMER") {
+      setActiveNav("Overview");
+    } else {
+      setActiveNav(bothPerspective === "BUYER" ? "Farmer Telemetry" : "Overview");
+    }
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("krishiastra_auth_user", JSON.stringify(session.user));
+    }
+  };
+
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("krishiastra_auth_user");
+    }
+    notify("Logged out. Please sign in with your credentials.");
+    setShowAuthModal(true);
+  };
+
+  // Determine navigation options dynamically based on active projected persona
+  const currentNavItems = useMemo(() => {
+    if (activePersona === "BUYER") {
+      return buyerNavItems;
+    }
+    return farmerNavItems.map((item) => ({
+      ...item,
+      label: item.translationKey ? t(item.translationKey) : item.label,
+    }));
+  }, [activePersona, t]);
 
   const decision = useMemo(
     () =>
@@ -137,27 +236,22 @@ function Index() {
     [sellMode, t],
   );
 
-  const notify = (message: string) => {
-    setToast(message);
-    window.setTimeout(() => setToast(""), 2600);
-  };
-
   const exportPlan = () => {
     const plan = [
-      "VERDANT AGRIDECK · FARM-TO-MARKET PLAN",
-      `Farmer: ${farmerProfile.name} (${farmerProfile.phone})`,
-      `Farm: ${farmerProfile.farmName} · ${farmerProfile.location} · ${farmerProfile.landArea}`,
-      `Soil: ${farmerProfile.soilType} (pH ${farmerProfile.soilPh}) · Water: ${farmerProfile.waterSource}`,
-      `Crop: ${farmerProfile.targetCrop}`,
+      "KRISHIASTRA · FARM-TO-MARKET PLAN",
+      `Farmer: ${farmerProfile?.name || currentUser.name} (${farmerProfile?.phone || currentUser.phone})`,
+      `Farm: ${farmerProfile?.farmName || "Farmstead"} · ${farmerProfile?.location || currentUser.location} · ${farmerProfile?.landArea || "5 ac"}`,
+      `Soil: ${farmerProfile?.soilType || "Black cotton"} (pH ${farmerProfile?.soilPh || "7.1"}) · Water: ${farmerProfile?.waterSource || "Canal"}`,
+      `Crop: ${farmerProfile?.targetCrop || "Soybean"}`,
       `Decision: ${decision.title} · ${decision.value}`,
       "Buyer: Krishna Oils Ltd · ₹4,350/t · Grade A",
-      `Expected net profit: ₹3.41 L · Season Budget: ${farmerProfile.budget}`,
+      `Expected net profit: ₹3.41 L · Season Budget: ${farmerProfile?.budget || "₹2,10,000"}`,
     ].join("\n");
     const blob = new Blob([plan], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "verdant-season-plan.txt";
+    link.download = "krishiastra-season-plan.txt";
     link.click();
     URL.revokeObjectURL(url);
     notify("Season plan exported");
@@ -169,20 +263,52 @@ function Index() {
       <div className="relative flex min-h-screen">
         {/* Desktop Sidebar */}
         <aside className="hidden w-60 shrink-0 border-r border-line bg-panel/80 backdrop-blur-md lg:flex lg:flex-col">
-          <div className="flex h-14 items-center gap-2 border-b border-line px-5">
+          <div className="flex h-14 items-center gap-2.5 border-b border-line px-5">
             <div className="grid size-7 place-items-center rounded-[5px] bg-leaf/15 ring-1 ring-leaf/40">
-              <Leaf className="size-3.5 text-leaf" />
+              <Sprout className="size-4 text-leaf" />
             </div>
             <div className="leading-none">
-              <div className="text-sm font-semibold tracking-tight">Verdant</div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.18em] text-faint">
-                Agrideck
+              <div className="text-sm font-bold tracking-tight text-ink">KrishiAstra</div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-faint">
+                {activePersona === "FARMER" ? "Farmer Console" : "Buyer Console"}
               </div>
             </div>
           </div>
-          <nav className="space-y-0.5 px-3 py-4" aria-label="Main navigation">
-            {navItemDefs.map(({ id, translationKey, icon: Icon }) => {
-              const label = t(translationKey);
+
+          {/* Account Category Indicator in Sidebar */}
+          <div className="p-3 border-b border-line/60">
+            <div className="rounded-md bg-panel2 p-2.5 ring-1 ring-line">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-faint">
+                  Account Identity
+                </span>
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                    isBoth
+                      ? "bg-gold/20 text-gold ring-1 ring-gold/40"
+                      : currentUser.role === "FARMER"
+                      ? "bg-leaf/20 text-leaf ring-leaf/40"
+                      : "bg-aqua/20 text-aqua ring-aqua/40"
+                  }`}
+                >
+                  {isBoth
+                    ? "BOTH (FARMER & BUYER)"
+                    : currentUser.role === "BUYER"
+                    ? `BUYER (${currentUser.buyerClassification || "MARKET"})`
+                    : "FARMER"}
+                </span>
+              </div>
+              <div className="mt-1 text-xs font-semibold text-ink truncate">
+                {currentUser.name}
+              </div>
+              <div className="mt-0.5 text-[10px] text-mute truncate font-mono">
+                {currentUser.email}
+              </div>
+            </div>
+          </div>
+
+          <nav className="space-y-0.5 px-3 py-3" aria-label="Main navigation">
+            {currentNavItems.map(({ id, label, icon: Icon }) => {
               return (
                 <button
                   key={id}
@@ -203,6 +329,7 @@ function Index() {
               );
             })}
           </nav>
+
           <div className="mt-auto p-3">
             <div className="rounded-md bg-panel2 p-3 ring-1 ring-line">
               <div className="mb-2 flex items-center gap-2">
@@ -224,8 +351,8 @@ function Index() {
             <div className="relative flex w-64 flex-col border-r border-line bg-panel p-4 shadow-xl">
               <div className="mb-4 flex items-center justify-between border-b border-line pb-3">
                 <div className="flex items-center gap-2">
-                  <Leaf className="size-4 text-leaf" />
-                  <span className="font-semibold text-sm">Verdant Agrideck</span>
+                  <Sprout className="size-4 text-leaf" />
+                  <span className="font-semibold text-sm">KrishiAstra</span>
                 </div>
                 <button
                   type="button"
@@ -236,14 +363,37 @@ function Index() {
                 </button>
               </div>
 
+              {/* Perspective toggle in Mobile Drawer ONLY for BOTH role accounts */}
+              {isBoth && (
+                <div className="mb-3 flex rounded-md bg-panel2 p-1 ring-1 ring-line text-xs">
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchProjection("FARMER")}
+                    className={`flex-1 rounded py-1 text-center font-medium ${
+                      activePersona === "FARMER" ? "bg-leaf text-ground font-bold" : "text-mute"
+                    }`}
+                  >
+                    Farm View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchProjection("BUYER")}
+                    className={`flex-1 rounded py-1 text-center font-medium ${
+                      activePersona === "BUYER" ? "bg-aqua text-ground font-bold" : "text-mute"
+                    }`}
+                  >
+                    Buyer View
+                  </button>
+                </div>
+              )}
+
               <div className="mb-3 flex items-center gap-2">
                 <LanguageSelector />
                 <ThemeToggle />
               </div>
 
               <nav className="space-y-1">
-                {navItemDefs.map(({ id, translationKey, icon: Icon }) => {
-                  const label = t(translationKey);
+                {currentNavItems.map(({ id, label, icon: Icon }) => {
                   return (
                     <button
                       key={id}
@@ -270,6 +420,7 @@ function Index() {
         )}
 
         <main className="min-w-0 flex-1 overflow-auto">
+          {/* Top Header Bar */}
           <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-line bg-ground/80 px-4 backdrop-blur-xl sm:px-6">
             <div className="flex items-center gap-3 text-xs">
               <button
@@ -281,30 +432,100 @@ function Index() {
                 <Menu className="size-4 text-mute" />
               </button>
               <span className="text-mute">
-                {t(navItemDefs.find((n) => n.id === activeNav)?.translationKey || "nav.overview")}
+                {currentNavItems.find((n) => n.id === activeNav)?.label || activeNav}
               </span>
               <ChevronRight className="size-3 text-faint" />
-              <span className="font-medium text-ink">{t("header.seasonPlan")}</span>
+              <span className="font-medium text-ink">
+                {activePersona === "FARMER" ? "KrishiAstra Farmer Console" : "KrishiAstra Buyer Console"}
+              </span>
             </div>
 
             <div className="flex items-center gap-2 text-xs">
+              {/* GLOBAL HUD TOGGLE: Enabled ONLY for BOTH dual-actor accounts */}
+              {isBoth ? (
+                <div className="flex items-center rounded-md bg-panel p-0.5 ring-1 ring-gold/40 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchProjection("FARMER")}
+                    className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-colors ${
+                      activePersona === "FARMER"
+                        ? "bg-leaf text-ground font-bold shadow-sm"
+                        : "text-mute hover:text-ink"
+                    }`}
+                    title="Switch perspective to Farm Console"
+                  >
+                    <Sprout className="size-3.5" />
+                    <span className="hidden sm:inline">Farm View</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchProjection("BUYER")}
+                    className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-colors ${
+                      activePersona === "BUYER"
+                        ? "bg-aqua text-ground font-bold shadow-sm"
+                        : "text-mute hover:text-ink"
+                    }`}
+                    title="Switch perspective to Buyer Console"
+                  >
+                    <Building className="size-3.5" />
+                    <span className="hidden sm:inline">Buyer View</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="hidden sm:flex items-center gap-1.5 rounded-md bg-panel px-2.5 py-1 text-[11px] font-semibold ring-1 ring-line">
+                  {currentUser.role === "FARMER" ? (
+                    <>
+                      <Sprout className="size-3.5 text-leaf" /> Farmer Account
+                    </>
+                  ) : (
+                    <>
+                      <Building className="size-3.5 text-aqua" /> Buyer Account ({currentUser.buyerClassification || "MARKET"})
+                    </>
+                  )}
+                </div>
+              )}
+
               <LanguageSelector />
               <ThemeToggle />
 
-              {/* Location Badge */}
-              <div className="hidden items-center gap-1.5 rounded-md bg-panel px-3 py-1.5 text-mute ring-1 ring-line sm:flex">
-                <MapPin className="size-3.5 text-aqua" /> {farmerProfile.location}
-              </div>
-
-              {/* Farmer Profile Button */}
+              {/* User Account Button: click to manage details in Settings */}
               <button
                 type="button"
                 className="flex items-center gap-2 rounded-md bg-panel px-2.5 py-1.5 ring-1 ring-line hover:bg-panel2 transition-colors"
-                onClick={() => setShowProfileModal(true)}
-                title="Edit Farmer & Farm Profile"
+                onClick={() => {
+                  setActiveNav("Settings");
+                  notify("Opened Account & Profile Settings");
+                }}
+                title="Manage Account & Profile Details"
               >
                 <User className="size-3.5 text-leaf" />
-                <span className="text-ink font-medium">{farmerProfile.name}</span>
+                <span className="text-ink font-medium hidden sm:inline">{currentUser.name}</span>
+                <span className="rounded bg-panel2 px-1.5 py-0.5 text-[9px] text-faint ring-1 ring-line">
+                  {currentUser.role === "BOTH" ? "BOTH" : currentUser.role}
+                </span>
+              </button>
+
+              {/* Switch / Sign In Account Button */}
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-md bg-panel px-2 py-1.5 ring-1 ring-line hover:bg-panel2 text-ink text-xs transition-colors"
+                onClick={() => setShowAuthModal(true)}
+                title="Sign in with different credentials or create new account"
+              >
+                <KeyRound className="size-3.5 text-mute" />
+                <span className="hidden md:inline text-xs">Switch Account</span>
+              </button>
+
+              {/* Log Out Button */}
+              <button
+                type="button"
+                className="grid size-8 place-items-center rounded-md bg-panel text-mute ring-1 ring-line hover:text-red-400 hover:bg-panel2 transition-colors"
+                title="Log Out"
+                aria-label="Log Out"
+                onClick={handleLogout}
+              >
+                <LogOut className="size-3.5" />
               </button>
 
               <button
@@ -318,15 +539,55 @@ function Index() {
             </div>
           </header>
 
+          {/* Dynamic Main Workspace Area */}
           <div className="relative z-10 space-y-5 p-4 sm:p-6">
             {activeNav === "Grow plan" && <GrowPlanView notify={notify} />}
             {activeNav === "Advisory" && <AdvisoryView notify={notify} />}
             {activeNav === "Sell vs store" && <SellVsStoreView notify={notify} />}
-            {activeNav === "Storage" && <StorageView notify={notify} />}
-            {activeNav === "Buyers" && <BuyersView notify={notify} />}
+            {activeNav === "Storage" && (
+              <StorageView
+                notify={notify}
+                farmerName={farmerProfile?.name || currentUser.name}
+                farmerPhone={farmerProfile?.phone || currentUser.phone}
+              />
+            )}
+            {activeNav === "Buyers" && (
+              <BuyersView
+                notify={notify}
+                farmerName={farmerProfile?.name || currentUser.name}
+                farmerPhone={farmerProfile?.phone || currentUser.phone}
+              />
+            )}
             {activeNav === "Profit" && <ProfitView notify={notify} />}
+            {activeNav === "Farmer Telemetry" && (
+              <BuyerDashboardView
+                buyerRole={buyerProfile?.buyerType === "STORAGE" ? "BUYER_STORAGE" : "BUYER_MARKET"}
+                buyerClassification={buyerProfile?.buyerType || currentUser.buyerClassification || "MARKET"}
+                buyerProfile={buyerProfile as any}
+                notify={notify}
+              />
+            )}
 
-            {activeNav === "Overview" && (
+            {/* Account & Profile Settings Tab */}
+            {activeNav === "Settings" && (
+              <AccountSettingsView
+                currentUser={currentUser}
+                farmerProfile={farmerProfile}
+                buyerProfile={buyerProfile}
+                onUpdateUser={(u) => {
+                  setCurrentUser(u);
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem("krishiastra_auth_user", JSON.stringify(u));
+                  }
+                }}
+                onUpdateFarmerProfile={(fp) => setFarmerProfile(fp)}
+                onUpdateBuyerProfile={(bp) => setBuyerProfile(bp)}
+                notify={notify}
+              />
+            )}
+
+            {/* Overview Cockpit for Farmer projection (WITHOUT the stepper) */}
+            {activeNav === "Overview" && activePersona === "FARMER" && (
               <div className="space-y-5">
                 <section className="space-y-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -364,120 +625,29 @@ function Index() {
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <ContextCard
                       label={t("overview.farm")}
-                      value={farmerProfile.farmName}
-                      note={`${farmerProfile.location} · ${farmerProfile.landArea}`}
+                      value={farmerProfile?.farmName || "Farmstead"}
+                      note={`${farmerProfile?.location || currentUser.location} · ${farmerProfile?.landArea || "6.4 acres"}`}
                       icon={Wheat}
                     />
                     <ContextCard
                       label={t("overview.soil")}
-                      value={farmerProfile.soilType}
-                      note={`pH ${farmerProfile.soilPh}`}
+                      value={farmerProfile?.soilType || "Black cotton"}
+                      note={`pH ${farmerProfile?.soilPh || "7.1"}`}
                       icon={Sprout}
                     />
                     <ContextCard
                       label={t("overview.water")}
-                      value={farmerProfile.waterSource}
+                      value={farmerProfile?.waterSource || "Canal + Drip"}
                       note="Aqua 3.2 ac-in"
                       icon={Droplets}
                     />
                     <ContextCard
                       label={t("overview.budget")}
-                      value={farmerProfile.budget}
+                      value={farmerProfile?.budget || "₹2,10,000"}
                       note="Season cap set"
                       icon={Gauge}
                     />
                   </div>
-
-                  {/* Interactive Dynamic Farm-to-Market Stepper */}
-                  {showWorkflowBar && (
-                    <div className="overflow-hidden rounded-md bg-panel p-4 ring-1 ring-line">
-                      <div className="mb-4 flex items-center justify-between">
-                        <span className="text-[11px] uppercase tracking-[0.14em] text-faint">
-                          {t("overview.workflowTitle")}
-                        </span>
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono text-[11px] text-mute">
-                            {t("overview.step")} 0{activeStepIndex + 1} / 06
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setShowWorkflowBar(false)}
-                            className="text-faint hover:text-ink text-xs flex items-center gap-1"
-                            title="Hide Workflow Stepper"
-                          >
-                            <EyeOff className="size-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="grid min-w-[580px] grid-cols-6 gap-2">
-                        {workflowSteps.map((step, index) => {
-                          const done = index < activeStepIndex;
-                          const current = index === activeStepIndex;
-                          const stepTitle = t(step.translationKey);
-
-                          return (
-                            <button
-                              type="button"
-                              key={step.id}
-                              onClick={() => {
-                                setActiveNav(step.id);
-                                notify(`${stepTitle} view opened`);
-                              }}
-                              className="text-left group transition-all"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={`grid size-5 shrink-0 place-items-center rounded-full text-[10px] transition-colors ${
-                                    done
-                                      ? "bg-leaf/20 text-leaf ring-1 ring-leaf/50"
-                                      : current
-                                      ? "bg-gold/20 text-gold ring-1 ring-gold/40 font-bold"
-                                      : "bg-panel2 text-faint ring-1 ring-line group-hover:border-leaf"
-                                  }`}
-                                >
-                                  {done ? <Check className="size-3" /> : index + 1}
-                                </span>
-                                <span
-                                  className={`truncate text-xs ${
-                                    current
-                                      ? "font-semibold text-gold"
-                                      : done
-                                      ? "font-medium text-ink"
-                                      : "text-faint group-hover:text-ink"
-                                  }`}
-                                >
-                                  {stepTitle}
-                                </span>
-                              </div>
-                              <div
-                                className={`mt-2 h-1 rounded-full ${
-                                  done ? "bg-leaf" : current ? "bg-gold/40" : "bg-line"
-                                }`}
-                              >
-                                <div
-                                  className={`h-full rounded-full transition-all ${
-                                    current ? "w-full bg-gold" : done ? "w-full bg-leaf" : "w-0"
-                                  }`}
-                                />
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {!showWorkflowBar && (
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => setShowWorkflowBar(true)}
-                        className="text-xs text-mute hover:text-ink flex items-center gap-1.5 rounded-md bg-panel px-3 py-1.5 ring-1 ring-line"
-                      >
-                        <Eye className="size-3.5 text-leaf" /> Show Workflow Stepper
-                      </button>
-                    </div>
-                  )}
                 </section>
 
                 <section className="grid gap-4 xl:grid-cols-5">
@@ -752,14 +922,18 @@ function Index() {
         </main>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setShowFarmForm(true)}
-        className="fixed bottom-5 right-5 z-30 flex items-center gap-2 rounded-md bg-leaf px-4 py-3 text-sm font-medium text-ground shadow-xl shadow-leaf/15 ring-1 ring-leaf/50 transition hover:bg-leaf/90"
-      >
-        <Sprout className="size-4" /> {t("overview.newFarmPlan")}
-      </button>
+      {/* Floating New Farm Scenario Button (Only for Farmer context) */}
+      {activePersona === "FARMER" && (
+        <button
+          type="button"
+          onClick={() => setShowFarmForm(true)}
+          className="fixed bottom-5 right-5 z-30 flex items-center gap-2 rounded-md bg-leaf px-4 py-3 text-sm font-medium text-ground shadow-xl shadow-leaf/15 ring-1 ring-leaf/50 transition hover:bg-leaf/90"
+        >
+          <Sprout className="size-4" /> {t("overview.newFarmPlan")}
+        </button>
+      )}
 
+      {/* Scenario Model Form */}
       {showFarmForm && (
         <div className="fixed inset-0 z-40 grid place-items-center bg-ground/80 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-md bg-panel p-5 shadow-2xl ring-1 ring-line">
@@ -782,15 +956,15 @@ function Index() {
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <label className="text-xs text-mute">
                 {t("overview.location")}
-                <input className="field-control" defaultValue={farmerProfile.location} />
+                <input className="field-control" defaultValue={farmerProfile?.location || currentUser.location} />
               </label>
               <label className="text-xs text-mute">
                 {t("overview.landArea")}
-                <input className="field-control" defaultValue={farmerProfile.landArea} />
+                <input className="field-control" defaultValue={farmerProfile?.landArea || "6.4 acres"} />
               </label>
               <label className="text-xs text-mute">
                 {t("overview.soilCondition")}
-                <select className="field-control" defaultValue={farmerProfile.soilType}>
+                <select className="field-control" defaultValue={farmerProfile?.soilType || "Black cotton"}>
                   <option>Black cotton</option>
                   <option>Red loam</option>
                   <option>Alluvial</option>
@@ -830,17 +1004,17 @@ function Index() {
         </div>
       )}
 
-      {/* Farmer Profile Modal */}
-      <FarmerProfileModal
-        isOpen={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-        profile={farmerProfile}
-        onSave={handleSaveProfile}
+      {/* Tri-Persona Authentication & Switch Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        currentUser={currentUser}
+        onAuthSuccess={handleAuthSuccess}
         notify={notify}
       />
 
       {toast && (
-        <div className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-md bg-panel2 px-4 py-3 text-sm text-ink shadow-xl ring-1 ring-line">
+        <div className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-md bg-panel2 px-4 py-3 text-sm text-ink shadow-xl ring-1 ring-line animate-in fade-in slide-in-from-bottom-2">
           <Check className="size-4 text-leaf" /> {toast}
         </div>
       )}

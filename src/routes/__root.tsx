@@ -78,14 +78,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Verdant Agrideck | Farm-to-market intelligence" },
+      { title: "KrishiAstra | Farm-to-market intelligence" },
       {
         name: "description",
         content:
           "AI-powered crop planning, cultivation guidance, market intelligence, and buyer matching.",
       },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Verdant Agrideck | Farm-to-market intelligence" },
+      { property: "og:title", content: "KrishiAstra | Farm-to-market intelligence" },
       {
         property: "og:description",
         content: "Turn soil, weather, and market signals into one confident farm-to-market plan.",

@@ -35,8 +35,8 @@ export function LanguageSelector() {
         aria-label="Select language"
       >
         <Globe className="size-3.5 text-leaf" />
-        <span className="font-medium">{currentLang.nativeName}</span>
-        <span className="text-[10px] text-faint">({currentLang.code.toUpperCase()})</span>
+        <span className="font-medium">{currentLang?.nativeName ?? "English"}</span>
+        <span className="text-[10px] text-faint">({currentLang?.code ? currentLang.code.toUpperCase() : "EN"})</span>
       </button>
 
       {open && (
